@@ -1,47 +1,30 @@
 import pandas as pd
-import numpy as np
+import joblib
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.linear_model import LinearRegression
-import joblib
 
-# Generate synthetic EV data
-np.random.seed(42)
-
-data = pd.DataFrame({
-    "voltage": np.random.normal(48, 2, 500),
-    "temperature": np.random.normal(35, 5, 500),
-    "current": np.random.normal(10, 3, 500),
-    "cycles": np.random.randint(100, 1000, 500)
-})
-
-# Failure condition
-data["failure"] = (data["temperature"] > 45).astype(int)
-
-# Health score
-data["health"] = 100 - (data["cycles"] * 0.05 + data["temperature"] * 0.2)
-
-# Save dataset
-data.to_csv("ev_data.csv", index=False)
+# Load dataset
+df = pd.read_csv(r"ev_data.csv")
 
 # Features
-X = data[["voltage", "temperature", "current", "cycles"]]
-y = data["failure"]
+X = df[["voltage", "temperature", "current", "cycles"]]
 
-# Train classification model
-clf = RandomForestClassifier()
-clf.fit(X, y)
+# Dummy labels (for demo)
+y_failure = (df["temperature"] > 45).astype(int)
 
-# Train anomaly model
+# Train models
+failure_model = RandomForestClassifier()
+failure_model.fit(X, y_failure)
+
 anomaly_model = IsolationForest()
 anomaly_model.fit(X)
 
-# Train regression model
-reg = LinearRegression()
-reg.fit(X[["voltage", "temperature", "cycles"]], data["health"])
+health_model = LinearRegression()
+health_model.fit(df[["voltage", "temperature", "cycles"]], df["temperature"])
 
 # Save models
-joblib.dump(clf, "model.pkl")
-joblib.dump(anomaly_model, "anomaly.pkl")
-joblib.dump(reg, "health.pkl")
+joblib.dump(failure_model, "failure_model.pkl")
+joblib.dump(anomaly_model, "anomaly_model.pkl")
+joblib.dump(health_model, "health_model.pkl")
 
-print("Models trained and saved successfully!")
+print("✅ Models saved successfully!")
