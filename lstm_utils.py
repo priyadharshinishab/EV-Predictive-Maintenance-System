@@ -1,45 +1,45 @@
 import numpy as np
-import joblib
-from tensorflow.keras.models import load_model
-from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras import Input
+from sklearn.preprocessing import MinMaxScaler
 
-# Load models
-clf = joblib.load("model.pkl")
-anomaly_model = joblib.load("anomaly.pkl")
-health_model = joblib.load("health.pkl")
-lstm_model = load_model("lstm_model.keras")
-
-# Load scaler (recreate same way as training)
+# Load data
 df = pd.read_csv("ev_data.csv")
+
+# Select features
 features = df[["voltage", "temperature", "current", "cycles"]]
 
+# Normalize data
 scaler = MinMaxScaler()
 scaled = scaler.fit_transform(features)
 
-# ----------- ML Predictions -----------
+# Create sequences for LSTM
+def create_sequences(data, seq_length=10):
+    X, y = [], []
+    for i in range(len(data) - seq_length):
+        X.append(data[i:i+seq_length])
+        y.append(data[i+seq_length][1])  # Predict temperature trend
+    return np.array(X), np.array(y)
 
-def predict_failure(voltage, temperature, current, cycles):
-    data = np.array([[voltage, temperature, current, cycles]])
-    return clf.predict(data)[0]
+X, y = create_sequences(scaled)
 
-def detect_anomaly(voltage, temperature, current, cycles):
-    data = np.array([[voltage, temperature, current, cycles]])
-    return anomaly_model.predict(data)[0]
+# Build LSTM model (FIXED)
+model = Sequential([
+    Input(shape=(X.shape[1], X.shape[2])),
+    LSTM(50, return_sequences=True),
+    LSTM(50),
+    Dense(1)
+])
 
-def predict_health(voltage, temperature, cycles):
-    data = np.array([[voltage, temperature, cycles]])
-    return health_model.predict(data)[0]
+# Compile model
+model.compile(optimizer='adam', loss='mse')
 
-# ----------- LSTM Prediction -----------
+# Train model
+model.fit(X, y, epochs=5, batch_size=16)
 
-def predict_temperature_trend(voltage, temperature, current, cycles):
-    input_data = np.array([[voltage, temperature, current, cycles]])
-    scaled_input = scaler.transform(input_data)
+# Save model (new format)
+model.save("lstm_model.keras")
 
-    # Repeat to form sequence (fake sequence for demo)
-    sequence = np.repeat(scaled_input, 10, axis=0)
-    sequence = sequence.reshape(1, 10, 4)
-
-    prediction = lstm_model.predict(sequence)
-    return prediction[0][0]
+print("✅ LSTM model trained and saved successfully!")
