@@ -2,9 +2,9 @@ import smtplib
 from email.mime.text import MIMEText
 
 def send_alert(message):
-    sender = r"priyadharshinivenkatesan10@gmail.com"
-    receiver = r"priyadharshini.shab28@gmail.com"
-    password = r"qqew lxir wbaw lxhw"   # NOT your Gmail password!
+    sender = ""
+    receiver = ""
+    password = ""
 
     msg = MIMEText(message)
     msg["Subject"] = "🚨 EV Battery Alert"
@@ -12,11 +12,18 @@ def send_alert(message):
     msg["To"] = receiver
 
     try:
+        print("Connecting...")
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
+
+        print("Logging in...")
         server.login(sender, password)
+
+        print("Sending email...")
         server.sendmail(sender, receiver, msg.as_string())
+
         server.quit()
-        print("Alert sent successfully!")
+        print("✅ Alert sent!")
+
     except Exception as e:
-        print("Error sending email:", e)
+        print("❌ ERROR:", str(e))
